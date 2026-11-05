@@ -1,0 +1,19 @@
+// Small, readable KiriKiri project for trying pack, unpack, and web conversion.
+var win = new Window();
+win.caption = "krkrtools example";
+win.setInnerSize(640, 360);
+
+var primary = new Layer(win, null);
+primary.setSize(640, 360);
+primary.fillRect(0, 0, 640, 360, 0xff000000);
+primary.visible = true;
+win.add(primary);
+
+var stage = new Layer(win, primary);
+stage.setSize(640, 360);
+stage.fillRect(0, 0, 640, 360, 0xff203040);
+stage.visible = true;
+win.add(stage);
+stage.font.height = 28;
+stage.drawText(30, 50, "Hello from extracted assets", 0xffffff, 255);
+win.visible = true;

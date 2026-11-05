@@ -1,0 +1,53 @@
+// FlashPlayer animation/layer API over the shared Ruffle VideoOverlay backend.
+if(typeof global.FlashPlayer != "undefined") return;
+class KrkrtoolsFlashVideo extends VideoOverlay {
+  var _owner;
+  function KrkrtoolsFlashVideo(window,owner) { super.VideoOverlay(window);_owner=owner; }
+  function onFrameUpdate(frame) { if(_owner!==null && isvalid _owner) _owner.onFrameUpdate(); }
+  function finalize() { _owner=null;super.finalize(); }
+}
+class KrkrtoolsFlashPlayer {
+  var _video=null,_surface=null,_timer=null,_file="",_width=0,_height=0,_state=0,_playing=false;
+  function KrkrtoolsFlashPlayer(width,height) { FlashPlayer(width,height); }
+  function FlashPlayer(width,height) {
+    setSize(width,height);
+    // If no main Window exists yet, the first draw supplies its owning Window.
+    _timer=new Timer(this,"onDrawRequest");_timer.interval=33;_timer.enabled=false;
+  }
+  function initMovie(filename) {
+    if(_video!==null) { _video.close();invalidate _video;_video=null; }
+    if(_surface!==null) { invalidate _surface;_surface=null; }
+    _file=filename;_state=1;onReadyStateChange(_state);
+    var main=Window.mainWindow;
+    if(main!==null && isvalid main && main.primaryLayer!==null) attach(main.primaryLayer);
+  }
+  function play() { if(_file=="") throw new Exception("FlashPlayer: call initMovie before play");_playing=true;if(_video!==null) _video.play();else _timer.enabled=true; }
+  function stop() { _playing=false;_timer.enabled=false;if(_video!==null) _video.stop(); }
+  function pause() { _playing=false;_timer.enabled=false;if(_video!==null) _video.pause(); }
+  function onDrawRequest() { onFrameUpdate(); }
+  function setSize(width,height) { _width=int(width);_height=int(height);if(_width<1 || _height<1) throw new Exception("FlashPlayer: invalid size"); }
+  function attach(layer) {
+    _timer.enabled=false;
+    _surface=new Layer(layer.window,layer);_surface.visible=false;_surface.type=ltAlpha;_surface.setSize(_width,_height);
+    _video=new KrkrtoolsFlashVideo(layer.window,this);_video.mode=vomLayer;_video.layer1=_surface;
+    _video.open(_file);_state=4;onReadyStateChange(_state);if(_playing) _video.play();
+  }
+  function draw(layer,transparent=true) {
+    if(_file=="") return;
+    if(_video===null) attach(layer);
+    if(layer.imageWidth!=_width || layer.imageHeight!=_height) layer.setImageSize(_width,_height);
+    layer.stretchCopy(0,0,_width,_height,_surface,0,0,_surface.imageWidth,_surface.imageHeight,stLinear);
+  }
+  property width { getter() { return _width; } }
+  property height { getter() { return _height; } }
+  property readyState { getter() { return _state; } }
+  function onReadyStateChange(state) {}
+  function onFrameUpdate() {}
+  function finalize() {
+    if(_timer!==null && isvalid _timer) invalidate _timer;
+    if(_video!==null && isvalid _video) invalidate _video;
+    if(_surface!==null && isvalid _surface) invalidate _surface;
+    _timer=null;_video=null;_surface=null;
+  }
+}
+global.FlashPlayer=KrkrtoolsFlashPlayer;

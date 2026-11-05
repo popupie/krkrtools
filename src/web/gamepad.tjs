@@ -1,0 +1,131 @@
+// Shared GamepadPort implementation. Standard browser mappings only. MIT.
+if(typeof global.GamepadPort != "undefined") return;
+global.krkrtoolsPadSnapshot=[];global.krkrtoolsPadObjects=%[];global.krkrtoolsPadRumble=[];
+var krkrtoolsInitialPads=System.getArgument("-krkrtools-gamepads");
+if(krkrtoolsInitialPads!==void && krkrtoolsInitialPads!=="")
+  global.krkrtoolsPadSnapshot=Scripts.eval(System.urldecode(krkrtoolsInitialPads));
+function krkrtoolsUpdateGamepads(snapshot) {
+  global.krkrtoolsPadSnapshot=snapshot;
+  var output=[];
+  for(var i=0;i<global.krkrtoolsPadRumble.count;i++) {
+    var r=global.krkrtoolsPadRumble[i];output.add("["+r[0]+","+r[1]+","+r[2]+"]");
+  }
+  global.krkrtoolsPadRumble=[];
+  return "["+output.join(",")+"]";
+}
+class KrkrtoolsBrowserGamepad {
+  var _slot=0,_data,_counts,_left=0,_right=0;
+  function KrkrtoolsBrowserGamepad(slot) {
+    _slot=slot;_data=[slot,"",0,0,0,0,0,0,0];_counts=%[];
+    for(var i=0;i<global.krkrtoolsPadSnapshot.count;i++) if(global.krkrtoolsPadSnapshot[i][0]==slot) _data=global.krkrtoolsPadSnapshot[i];
+  }
+  function edge(name,pressed) {
+    var old=_counts[name];if(old===void) old=0;
+    _counts[name]=pressed ? (old>0 ? old+1 : 1) : (old>0 ? 0 : old-1);
+  }
+  function update() {
+    _data=[_slot,_data[1],0,0,0,0,0,0,0];
+    for(var i=0;i<global.krkrtoolsPadSnapshot.count;i++) if(global.krkrtoolsPadSnapshot[i][0]==_slot) { _data=global.krkrtoolsPadSnapshot[i];break; }
+    edge("analogLeftUp",leftThumbStickY>0.25);
+    edge("analogLeftDown",leftThumbStickY< -0.25);
+    edge("analogLeftLeft",leftThumbStickX< -0.25);
+    edge("analogLeftRight",leftThumbStickX>0.25);
+    edge("analogRightUp",rightThumbStickY>0.25);
+    edge("analogRightDown",rightThumbStickY< -0.25);
+    edge("analogRightLeft",rightThumbStickX< -0.25);
+    edge("analogRightRight",rightThumbStickX>0.25);
+    edge("degitalUp",(keyState&1)!=0);
+    edge("degitalDown",(keyState&2)!=0);
+    edge("degitalLeft",(keyState&4)!=0);
+    edge("degitalRight",(keyState&8)!=0);
+    edge("buttonStart",(keyState&16)!=0);
+    edge("buttonBack",(keyState&32)!=0);
+    edge("buttonLeftThumb",(keyState&64)!=0);
+    edge("buttonRightThumb",(keyState&128)!=0);
+    edge("buttonLeftShoulder",(keyState&256)!=0);
+    edge("buttonRightShoulder",(keyState&512)!=0);
+    edge("buttonA",(keyState&4096)!=0);
+    edge("buttonB",(keyState&8192)!=0);
+    edge("buttonX",(keyState&16384)!=0);
+    edge("buttonY",(keyState&32768)!=0);
+    edge("buttonLeftTrigger",leftTrigger>=0.5);
+    edge("buttonRightTrigger",rightTrigger>=0.5);
+  }
+  property name { getter() { return _data[1]; } }
+  property type { getter() { return gpXInput; } }
+  property keyState { getter() { return _data[2]; } }
+  property leftThumbStickX { getter() { return _data[3]; } }
+  property leftThumbStickY { getter() { return _data[4]; } }
+  property rightThumbStickX { getter() { return _data[5]; } }
+  property rightThumbStickY { getter() { return _data[6]; } }
+  property leftTrigger { getter() { return _data[7]; } }
+  property rightTrigger { getter() { return _data[8]; } }
+  property analogLeftUpCount { getter() { return _counts["analogLeftUp"]===void ? 0 : _counts["analogLeftUp"]; } }
+  property analogLeftDownCount { getter() { return _counts["analogLeftDown"]===void ? 0 : _counts["analogLeftDown"]; } }
+  property analogLeftLeftCount { getter() { return _counts["analogLeftLeft"]===void ? 0 : _counts["analogLeftLeft"]; } }
+  property analogLeftRightCount { getter() { return _counts["analogLeftRight"]===void ? 0 : _counts["analogLeftRight"]; } }
+  property analogRightUpCount { getter() { return _counts["analogRightUp"]===void ? 0 : _counts["analogRightUp"]; } }
+  property analogRightDownCount { getter() { return _counts["analogRightDown"]===void ? 0 : _counts["analogRightDown"]; } }
+  property analogRightLeftCount { getter() { return _counts["analogRightLeft"]===void ? 0 : _counts["analogRightLeft"]; } }
+  property analogRightRightCount { getter() { return _counts["analogRightRight"]===void ? 0 : _counts["analogRightRight"]; } }
+  property degitalUpCount { getter() { return _counts["degitalUp"]===void ? 0 : _counts["degitalUp"]; } }
+  property degitalDownCount { getter() { return _counts["degitalDown"]===void ? 0 : _counts["degitalDown"]; } }
+  property degitalLeftCount { getter() { return _counts["degitalLeft"]===void ? 0 : _counts["degitalLeft"]; } }
+  property degitalRightCount { getter() { return _counts["degitalRight"]===void ? 0 : _counts["degitalRight"]; } }
+  property buttonStartCount { getter() { return _counts["buttonStart"]===void ? 0 : _counts["buttonStart"]; } }
+  property buttonBackCount { getter() { return _counts["buttonBack"]===void ? 0 : _counts["buttonBack"]; } }
+  property buttonLeftThumbCount { getter() { return _counts["buttonLeftThumb"]===void ? 0 : _counts["buttonLeftThumb"]; } }
+  property buttonRightThumbCount { getter() { return _counts["buttonRightThumb"]===void ? 0 : _counts["buttonRightThumb"]; } }
+  property buttonLeftShoulderCount { getter() { return _counts["buttonLeftShoulder"]===void ? 0 : _counts["buttonLeftShoulder"]; } }
+  property buttonRightShoulderCount { getter() { return _counts["buttonRightShoulder"]===void ? 0 : _counts["buttonRightShoulder"]; } }
+  property buttonACount { getter() { return _counts["buttonA"]===void ? 0 : _counts["buttonA"]; } }
+  property buttonBCount { getter() { return _counts["buttonB"]===void ? 0 : _counts["buttonB"]; } }
+  property buttonXCount { getter() { return _counts["buttonX"]===void ? 0 : _counts["buttonX"]; } }
+  property buttonYCount { getter() { return _counts["buttonY"]===void ? 0 : _counts["buttonY"]; } }
+  property buttonLeftTriggerCount { getter() { return _counts["buttonLeftTrigger"]===void ? 0 : _counts["buttonLeftTrigger"]; } }
+  property buttonRightTriggerCount { getter() { return _counts["buttonRightTrigger"]===void ? 0 : _counts["buttonRightTrigger"]; } }
+  function rumble() {
+    for(var i=0;i<global.krkrtoolsPadRumble.count;i++) if(global.krkrtoolsPadRumble[i][0]==_slot) {
+      global.krkrtoolsPadRumble[i]=[_slot,_left,_right];return;
+    }
+    if(global.krkrtoolsPadRumble.count<256) global.krkrtoolsPadRumble.add([_slot,_left,_right]);
+  }
+  property leftVibration { setter(value) { _left=Math.max(0,Math.min(1,+value));rumble(); } }
+  property rightVibration { setter(value) { _right=Math.max(0,Math.min(1,+value));rumble(); } }
+}
+class KrkrtoolsBrowserGamepadPort {
+  function initialize(windowHandle=void) {}
+  function getController(index) {
+    index=int(index);if(index<0 || index>=global.krkrtoolsPadSnapshot.count) return void;
+    var slot=global.krkrtoolsPadSnapshot[index][0],key=string(slot);
+    if(global.krkrtoolsPadObjects[key]===void) global.krkrtoolsPadObjects[key]=new KrkrtoolsBrowserGamepad(slot);
+    return global.krkrtoolsPadObjects[key];
+  }
+  property count { getter() { return global.krkrtoolsPadSnapshot.count; } }
+}
+global.GamepadPort=KrkrtoolsBrowserGamepadPort;
+if(typeof global.Gamepad == "undefined") global.Gamepad=KrkrtoolsBrowserGamepad;
+function krkrtoolsInstallGamepadConstants() {
+  var constants = [
+    ["gpDInput",3],["gpFFDInput",2],["gpXInput",1],["gpButtonDpadUp",0x1],["gpButtonDpadDown",0x2],["gpButtonDpadLeft",0x4],["gpButtonDpadRight",0x8],
+    ["gpButtonStart",0x10],["gpButtonBack",0x20],["gpButtonLeftThumb",0x40],["gpButtonRightThumb",0x80],
+    ["gpButtonLeftShoulder",0x100],["gpButtonRightShoulder",0x200],
+    ["gpButtonA",0x1000],["gpButtonB",0x2000],["gpButtonX",0x4000],["gpButtonY",0x8000],
+    ["gpLeftAxisX",0x10000],["gpLeftAxisY",0x20000],["gpRightAxisX",0x40000],["gpRightAxisY",0x80000],
+    ["gpLeftTrigger",0x100000],["gpRightTrigger",0x200000],
+    ["gpTouchNo",0],["gpTouchDown",1],["gpTouchLiftoff",0]
+  ];
+  for(var i=0; i<constants.count; i++) {
+    var pair = constants[i];
+    if(typeof global[pair[0]] == "undefined") global[pair[0]] = pair[1];
+  }
+  var directInput = ["gpDIAxisX","gpDIAxisY","gpDIAxisZ","gpDIAxisRotX","gpDIAxisRotY","gpDIAxisRotZ",
+    "gpDISlider_0","gpDISlider_1","gpDIPOV_0","gpDIPOV_1","gpDIPOV_2","gpDIPOV_3"];
+  for(var i=0; i<directInput.count; i++)
+    if(typeof global[directInput[i]] == "undefined") global[directInput[i]] = i;
+  for(var i=1; i<=32; i++)
+    if(typeof global["gpDIButton"+i] == "undefined") global["gpDIButton"+i] = 11+i;
+  if(typeof global.gpDIDisable == "undefined") global.gpDIDisable = 44;
+}
+krkrtoolsInstallGamepadConstants();
+Debug.notice("krkrtools: GamepadPort uses browser standard controllers; unmapped devices and DirectInput configuration are unsupported");

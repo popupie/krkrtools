@@ -1,0 +1,142 @@
+// Independent, experimental gfxFire implementation. MIT.
+// A bounded heat field is advected/cooled in TJS and upscaled by native Layer.
+if(typeof global.gfxFire != "undefined") return;
+class KrkrtoolsFire {
+  var _target = null, _buffer = null, _seeds, _heat, _next, _cool, _warp, _warpY, _custom;
+  var _width = 0, _height = 0, _w = 0, _h = 0, _step = 1, _state = 0, _phase = 0;
+  var _seed = 0, _forceH = 0, _forceV = 0, _palette = "red";
+  var forceH = 0, forceV = 0, boundRangeH = 4, boundRangeV = 4, scalingCoeff = 0.003;
+  var numOfBlurForCoolMap = 1, textureFilterType = 1, coolRange = 8, coolStrength = 32;
+  var coolParticleDensityDenominator = 8, coolParticleDensityNumerator = 1, edgeSmoothing = true;
+  function KrkrtoolsFire() { gfxFire(); }
+  function gfxFire() { _seeds=[]; _heat=[]; _next=[]; _cool=[]; _warp=[]; _warpY=[]; _custom=[]; }
+  function random() {
+    _state = (_state*1664525+1013904223)&0xffffffff;
+    return (_state&0xffffff)/16777216.0;
+  }
+  property randomSeed { getter() { return _seed; } setter(value) { _seed=int(value)&0xffffffff; } }
+  property targetLayer { setter(layer) { init(layer,Math.max(1,_seeds.count)); } }
+  property seedLayer { setter(layer) { setFireSeed(layer); } }
+  property numOfSeeds { getter() { return _seeds.count; } }
+  property seedX { getter() { return _seeds.count ? _seeds[0].x : 0; } setter(value) { setFireSeedPos(value,seedY); } }
+  property seedY { getter() { return _seeds.count ? _seeds[0].y : 0; } setter(value) { setFireSeedPos(seedX,value); } }
+  function checkSeed(index) {
+    if(index<0 || index>=_seeds.count) throw new Exception("gfxFire: seed index is outside numOfSeeds");
+  }
+  function init(layer, count = 1) {
+    if(layer===void || layer===null || !isvalid layer) throw new Exception("gfxFire: init needs a target Layer");
+    count=int(count);
+    if(count<1 || count>64) throw new Exception("gfxFire: supported seed count is 1 through 64");
+    if(_buffer!==null && isvalid _buffer) invalidate _buffer;
+    _target=layer; _width=layer.imageWidth; _height=layer.imageHeight;
+    if(_width<=0 || _height<=2) throw new Exception("gfxFire: target image must have a positive width and height above two");
+    var resolution=int(System.getArgument("-webfireresolution"));
+    if(resolution<32 || resolution>256) resolution=64;
+    _step=Math.max(1,Math.ceil(Math.max(_width,_height)/real(resolution)));
+    _w=int(Math.ceil(_width/_step)); _h=int(Math.ceil(_height/_step));
+    _buffer=new Layer(layer.window,layer); _buffer.visible=false; _buffer.type=ltAlpha;
+    _buffer.setSize(_w,_h);
+    _heat=[]; _next=[]; _seeds=[]; _state=_seed; _phase=0;
+    for(var i=0;i<_w*_h;i++) { _heat.add(0.0); _next.add(0.0); }
+    for(var i=0;i<count;i++) _seeds.add(%["layer"=>null,"x"=>0,"y"=>0,"heat"=>[],"width"=>0,"height"=>0]);
+    updateWarpMap(); updateCoolMap();
+  }
+  function updateWarpMap() {
+    if(forceH<=-8 || forceH>=8 || forceV<=-8 || forceV>=8 ||
+       boundRangeH<=0 || boundRangeH>16 || boundRangeV<=0 || boundRangeV>16)
+      throw new Exception("gfxFire: invalid force or bound range");
+    _forceH=+forceH; _forceV=+forceV; _warp=[]; _warpY=[];
+    for(var i=0;i<_w*_h;i++) { _warp.add((random()-0.5)*boundRangeH/4.0); _warpY.add((random()-0.5)*boundRangeV/4.0); }
+  }
+  function updateWrapMap() { updateWarpMap(); } // spelling used by legacy wrappers
+  function updateCoolMap() {
+    if(coolRange<=0 || coolRange>=256 || coolStrength<0 || coolStrength>=255 ||
+       coolParticleDensityDenominator<=0 || coolParticleDensityNumerator<=0 || numOfBlurForCoolMap<=0 || numOfBlurForCoolMap>64)
+      throw new Exception("gfxFire: invalid cooling parameters");
+    _cool=[];
+    var density=Math.min(1,coolParticleDensityNumerator/real(coolParticleDensityDenominator));
+    for(var y=0;y<_h;y++) for(var x=0;x<_w;x++) {
+      var value=0.2+coolStrength/64.0;
+      if(random()<density) value+=random()*coolRange/8.0;
+      if(edgeSmoothing) value+=Math.max(0,3-Math.min(x,_w-1-x))*2;
+      _cool.add(value);
+    }
+    for(var pass=0;pass<int(numOfBlurForCoolMap);pass++) {
+      var blurred=[];
+      for(var y=0;y<_h;y++) for(var x=0;x<_w;x++) {
+        var i=y*_w+x, sum=_cool[i], count=1;
+        if(x>0) { sum+=_cool[i-1];count++; }
+        if(x<_w-1) { sum+=_cool[i+1];count++; }
+        if(y>0) { sum+=_cool[i-_w];count++; }
+        if(y<_h-1) { sum+=_cool[i+_w];count++; }
+        blurred.add(sum/count);
+      }
+      _cool=blurred;
+    }
+  }
+  function setFireSeed(layer,index=0) {
+    checkSeed(index);
+    if(layer===void || layer===null || !isvalid layer) throw new Exception("gfxFire: seed needs a Layer");
+    var seed=_seeds[index];seed.layer=layer;seed.width=int(Math.ceil(layer.imageWidth/_step));seed.height=int(Math.ceil(layer.imageHeight/_step));seed.heat=[];
+    for(var y=0;y<seed.height;y++) for(var x=0;x<seed.width;x++) {
+      var sx=Math.min(layer.imageWidth-1,int(x*_step)),sy=Math.min(layer.imageHeight-1,int(y*_step));
+      var color=layer.getMainPixel(sx,sy), alpha=layer.getMaskPixel(sx,sy);
+      seed.heat.add(Math.max((color>>16)&255,Math.max((color>>8)&255,color&255))*alpha/255.0);
+    }
+  }
+  function clearFireSeed(index=0) { checkSeed(index);_seeds[index].layer=null;_seeds[index].heat=[]; }
+  function setFireSeedPos(x,y,index=0) { checkSeed(index);_seeds[index].x=+x;_seeds[index].y=+y; }
+  function applyRed() { _palette="red"; }
+  function applyBlue() { _palette="blue"; }
+  function applyWhite() { _palette="white"; }
+  function setCustomColorTable(layer) {
+    if(layer.imageWidth<256 || layer.imageHeight<1) throw new Exception("gfxFire: custom color table needs 256 by 1 pixels");
+    _custom=[];
+    for(var x=0;x<256;x++) _custom.add((layer.getMainPixel(x,0)&0xffffff)|(layer.getMaskPixel(x,0)<<24));
+  }
+  function applyCustom() { if(_custom.count!=256) throw new Exception("gfxFire: no custom color table");_palette="custom"; }
+  function color(value,additive) {
+    var h=Math.max(0,Math.min(255,int(value))),r,g,b,a=Math.min(255,h*2);
+    if(_palette=="custom") { var c=_custom[h];r=(c>>16)&255;g=(c>>8)&255;b=c&255;a=(c>>>24)&255; }
+    else if(_palette=="white") { r=h;g=h;b=h; }
+    else {
+      r=Math.min(255,h*3);g=Math.max(0,Math.min(255,h*3-255));b=Math.max(0,Math.min(255,h*3-510));
+      if(_palette=="blue") { var swap=r;r=b;b=swap; }
+    }
+    if(additive && _palette!="custom") { r=r*a\255;g=g*a\255;b=b*a\255; }
+    return (a<<24)|(r<<16)|(g<<8)|b;
+  }
+  function cycle() {
+    if(_target===null || !isvalid _target) throw new Exception("gfxFire: call init before cycle");
+    if(_target.imageWidth!=_width || _target.imageHeight!=_height) throw new Exception("gfxFire: target resized; call init again");
+    _phase+=0.05+Math.abs(scalingCoeff)*100;
+    for(var y=0;y<_h;y++) for(var x=0;x<_w;x++) {
+      var i=y*_w+x,sy=Math.min(_h-1,Math.max(0,int(y+1-_forceV+_warpY[i]*Math.cos(_phase+x*0.1))));
+      var sx=Math.max(0,Math.min(_w-1,int(x+_forceH+_warp[i]*Math.sin(_phase+y*Math.max(0.01,Math.abs(scalingCoeff)*100)))));
+      var n=sy*_w+sx,left=Math.max(0,sx-1),right=Math.min(_w-1,sx+1);
+      var heat=(_heat[n]*2+_heat[sy*_w+left]+_heat[sy*_w+right])/4.0-_cool[i];
+      _next[i]=Math.max(0,heat);
+    }
+    for(var s=0;s<_seeds.count;s++) {
+      var seed=_seeds[s];
+      if(seed.layer===null || !isvalid seed.layer) continue;
+      var ox=int(Math.floor(seed.x/_step)),oy=int(Math.floor(seed.y/_step));
+      for(var y=0;y<seed.height;y++) for(var x=0;x<seed.width;x++) {
+        var dx=x+ox,dy=y+oy;
+        if(dx>=0 && dx<_w && dy>=0 && dy<_h) {var i=dy*_w+dx;_next[i]=Math.max(_next[i],seed.heat[y*seed.width+x]);}
+      }
+    }
+    var swap=_heat;_heat=_next;_next=swap;
+    var additive=_target.type==ltAddAlpha || _target.face==dfAddAlpha;
+    var colors=[];for(var i=0;i<256;i++) colors.add(color(i,additive));
+    for(var y=0;y<_h;y++) for(var x=0;x<_w;x++) _buffer.fillRect(x,y,1,1,colors[Math.max(0,Math.min(255,int(_heat[y*_w+x])))]);
+    _target.stretchCopy(0,0,_width,_height,_buffer,0,0,_w,_h,textureFilterType==0 ? stNearest : stLinear);
+    _target.fillRect(0,_height-2,_width,2,0);
+  }
+  function finalize() {
+    if(_buffer!==null && isvalid _buffer) invalidate _buffer;
+    _buffer=null;_target=null;_seeds=[];_heat=[];_next=[];_cool=[];_warp=[]; _warpY=[];
+  }
+}
+global.gfxFire=KrkrtoolsFire;
+Debug.notice("krkrtools: experimental gfxFire heat simulation enabled (bounded resolution; native-plugin pixel parity is unverified)");

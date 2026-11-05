@@ -1,0 +1,35 @@
+{
+  "name": "krkrtools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pack and unpack standard KiriKiri XP3 archives and prepare web exports.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@11.7.0",
+  "bin": {
+    "krkrtools": "bin/krkrtools.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "examples",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "scripts": {
+    "start": "node bin/krkrtools.mjs",
+    "test": "node --test test/*.test.mjs",
+    "web": "node bin/krkrtools.mjs web",
+    "serve": "node bin/krkrtools.mjs serve",
+    "inspect": "node bin/krkrtools.mjs inspect",
+    "list": "node bin/krkrtools.mjs list",
+    "unpack": "node bin/krkrtools.mjs unpack",
+    "pack": "node bin/krkrtools.mjs pack"
+  }
+}

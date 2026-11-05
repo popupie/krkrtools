@@ -1,0 +1,14 @@
+// Basic layerExSave file methods, using KiriKiri Z's native image encoders.
+// Existing native implementations take precedence. MIT licensed.
+if(typeof Layer.saveLayerImage == "undefined")
+  throw new Exception("krkrtools: layerExSave requires native Layer.saveLayerImage support");
+if(typeof Layer.saveLayerImagePng == "undefined") Layer.saveLayerImagePng = function(filename, tags=void) {
+  if(tags !== void && tags !== null)
+    throw new Exception("krkrtools: layerExSave PNG tags and compression options are not supported");
+  return this.saveLayerImage(filename, "png");
+};
+if(typeof Layer.saveLayerImageTlg5 == "undefined") Layer.saveLayerImageTlg5 = function(filename, tags=void) {
+  if(tags !== void && tags !== null)
+    throw new Exception("krkrtools: layerExSave TLG5 tags are not supported");
+  return this.saveLayerImage(filename, "tlg5");
+};

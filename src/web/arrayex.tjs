@@ -1,0 +1,24 @@
+// ArrayEx operations used by legacy KAG games. Independently implemented. MIT.
+// Preserve any implementations supplied by the runtime or the game.
+if(typeof Array.values == "undefined") Array.values = function(key) {
+  var result = [];
+  for(var i = 0; i < this.count; i++) result.add(this[i][key]);
+  return result;
+};
+if(typeof Array.uniform == "undefined") Array.uniform = function(key,value) {
+  for(var i = 0; i < this.count; i++) this[i][key] = value;
+};
+if(typeof Array.grep == "undefined") Array.grep = function(callback) {
+  var result = [];
+  for(var i = 0; i < this.count; i++) if(callback(this[i])) result.add(this[i]);
+  return result;
+};
+if(typeof Array.eval == "undefined") Array.eval = function(callback) {
+  var result = [];
+  for(var i = 0; i < this.count; i++) {
+    var value = callback(this[i]);
+    if(value !== void) result.add(value);
+  }
+  return result;
+};
+Debug.notice("krkrtools: using TJS ArrayEx values/uniform/grep/eval operations");

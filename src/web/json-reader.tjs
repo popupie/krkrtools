@@ -1,0 +1,51 @@
+// Keep the native JSON grammar/parser, using the core text reader for storage.
+// The reference Wasm plugin's private binary-stream destructor traps. MIT.
+function krkrtoolsNormalizeJsonNumbers(text) {
+  var hex = "0123456789abcdef", result = "", start = 0, i = 0;
+  while(i < text.length) {
+    var ch = text.charAt(i);
+    if(ch == "\"" || ch == "'") {
+      var quote = ch; i++;
+      while(i < text.length) {
+        ch = text.charAt(i++);
+        if(ch == "\\") i++;
+        else if(ch == quote) break;
+      }
+    } else if(text.substr(i,2) == "//") {
+      while(i < text.length && text.charAt(i) != "\n" && text.charAt(i) != "\r") i++;
+    } else if(text.substr(i,2) == "/*") {
+      var close = text.indexOf("*/",i+2);
+      i = close < 0 ? text.length : close+2;
+    } else if(ch == "$" && i+1 < text.length && hex.indexOf(text.charAt(i+1).toLowerCase()) >= 0) {
+      var end = i+1, value = 0, digit;
+      while(end < text.length && (digit=hex.indexOf(text.charAt(end).toLowerCase())) >= 0) {
+        value = value*16+digit; end++;
+        if(value > 4294967295) throw new Exception("krkrtools: legacy JSON hex value exceeds 32 bits");
+      }
+      if(/[a-z0-9_$]/i.test(text.charAt(end))) throw new Exception("krkrtools: invalid legacy JSON hex number");
+      result += text.substr(start,i-start)+value;
+      start = end; i = end;
+    } else i++;
+  }
+  return result+text.substr(start);
+}
+
+// Install the storage adapter after the native JSON plugin becomes available.
+if(typeof global.krkrtoolsJsonReaderInstalled != "undefined") return;
+if(typeof Scripts.evalJSON == "undefined" || typeof Array.load == "undefined")
+  throw new Exception("krkrtools: JSON file loading requires the native JSON parser and Array.load");
+global.krkrtoolsNativeEvalJSONStorage = Scripts.evalJSONStorage;
+Scripts.evalJSONStorage = function(filename, utf8=false) {
+  var lines = [], encoding = Scripts.textEncoding;
+  try {
+    if(utf8) Scripts.textEncoding = "UTF-8";
+    lines.load(filename);
+  } catch(e) {
+    Scripts.textEncoding = encoding;
+    throw e;
+  }
+  Scripts.textEncoding = encoding;
+  // Rejoin lines so comments keep their boundaries. No TJS evaluation occurs.
+  return Scripts.evalJSON(krkrtoolsNormalizeJsonNumbers(lines.join("\n")));
+};
+global.krkrtoolsJsonReaderInstalled = true;

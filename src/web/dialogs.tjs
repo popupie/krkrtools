@@ -1,0 +1,19 @@
+// Standard KAG confirmation helper, rendered in the existing engine window.
+if(typeof global.ElementsDialog == "undefined") throw new Exception("krkrtools: this runtime needs ElementsDialog for KAG confirmation dialogs");
+global.askYesNo = function(message,caption="Confirm") {
+  var dialog=new ElementsDialog(),result;
+  try {
+    result=dialog.showModalDict(%["size"=>[480,210],"background"=>[28,31,38,245],"content"=>%[
+      "type"=>"vtile","gap"=>14,"children"=>[
+        %["type"=>"label","text"=>caption,"size_scale"=>1.2],
+        %["type"=>"label","text"=>message],
+        %["type"=>"htile","gap"=>12,"children"=>[
+          %["type"=>"button","id"=>"no","text"=>"No","close_on_click"=>true],
+          %["type"=>"button","id"=>"yes","text"=>"Yes","close_on_click"=>true]
+        ]]
+      ]
+    ]]);
+  } catch(error) { invalidate dialog;throw error; }
+  invalidate dialog;
+  return result.action=="yes";
+};

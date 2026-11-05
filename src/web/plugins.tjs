@@ -1,0 +1,66 @@
+// Shared plugin dispatch. Original DLLs are never executed by the browser.
+if(typeof global.krkrtoolsPluginsLoaded != "undefined") return;
+global.krkrtoolsPluginsLoaded = true;
+Scripts.execStorage("_krkrtools/plugin-catalog.tjs");
+global.krkrtoolsNativeLinkPlugin = Plugins.link;
+global.krkrtoolsLinkPlugin = function(name) {
+  var result = global.krkrtoolsNativeLinkPlugin(...);
+  if(/(^|[\\\/])json\.(dll|tpm)$/i.test(name) || /^json$/i.test(name))
+    Scripts.execStorage("_krkrtools/json-reader.tjs");
+  return result;
+};
+if(typeof Scripts.evalJSON != "undefined") Scripts.execStorage("_krkrtools/json-reader.tjs");
+Plugins.link = function(name) {
+  try { return global.krkrtoolsLinkPlugin(...); }
+  catch(nativeError) {
+    var key = (string name).toLowerCase().replace(/\\/g,"/");
+    key = key.replace(/^.*\//, "").replace(/\.(dll|tpm)$/i,"");
+    if(/^ktl_/.test(key)) key = key.replace(/-d$/,"").replace(/-v[0-9]+$/,"");
+    var plugin = global.krkrtoolsPluginCatalog[key];
+    if(plugin === void) throw nativeError;
+    switch(plugin.kind) {
+    case "native": case "alias":
+      return global.krkrtoolsLinkPlugin(plugin.target);
+    case "codec":
+      if(typeof global.WaveSoundBuffer == "undefined") throw nativeError;
+      break;
+    case "movie":
+      if(typeof global.VideoOverlay == "undefined" || typeof VideoOverlay.open == "undefined") throw nativeError;
+      break;
+    case "flash":
+      if(typeof global.krkrtoolsFlashAvailable == "undefined" || !global.krkrtoolsFlashAvailable)
+        throw new Exception("krkrtools: Flash playback needs the Ruffle runtime. Re-export this project with Flash support.");
+      break;
+    case "vector":
+      if(typeof global.GdiPlus == "undefined" || typeof GdiPlus.Appearance == "undefined" || typeof Layer.drawLine == "undefined")
+        global.krkrtoolsLinkPlugin(plugin.target);
+      if(typeof global.GdiPlus == "undefined" || typeof GdiPlus.Appearance == "undefined" || typeof Layer.drawLine == "undefined") throw nativeError;
+      break;
+    case "parser":
+      return global.krkrtoolsLinkPlugin(plugin.target);
+    case "font":
+      if(typeof System.addFont == "undefined") throw nativeError;
+      break;
+    case "filesystem":
+      if(typeof Storages.fstat == "undefined" || typeof Storages.dirlist == "undefined") throw nativeError;
+      break;
+    case "menu":
+      if(typeof global.MenuItem == "undefined") throw nativeError;
+      break;
+    case "script":
+      if(plugin.id == "gamepad" && typeof global.GamepadPort != "undefined") return true;
+      if(plugin.id == "particle" && typeof global.Particle != "undefined") return true;
+      if(plugin.id == "gfxeffect" && typeof global.gfxFire != "undefined") return true;
+      if(plugin.id == "flashplayer" && typeof global.FlashPlayer != "undefined") return true;
+      if(plugin.id == "flashplayer" && (typeof global.krkrtoolsFlashAvailable == "undefined" || !global.krkrtoolsFlashAvailable))
+        throw new Exception("krkrtools: FlashPlayer needs the Ruffle runtime. Re-export this project with Flash support.");
+      Scripts.execStorage("_krkrtools/"+plugin.file);
+      break;
+    default:
+      throw new Exception("krkrtools: "+plugin.name+" is not supported by this browser runtime. "+
+        (plugin.limits === void ? "A compatible implementation is required." : plugin.limits));
+    }
+    Debug.notice("krkrtools: plugin "+key+" => "+plugin.kind+" ("+plugin.status+")");
+    return true;
+  }
+};

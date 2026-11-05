@@ -1,0 +1,177 @@
+{
+  "format": "krkrtools-runtime",
+  "version": 1,
+  "id": "krkrz-web-21d20e9745e1",
+  "repository": "https://github.com/wamsoft/krkrz_dev",
+  "revision": "21d20e9745e13c9ffe68ae2eb012548afe73aaa8",
+  "files": [
+    {
+      "path": "krkrz.html",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/index.html",
+      "bytes": 5723,
+      "sha256": "f8affc6dda8108183b160bc3c758d3d3b0bd8501c28ff82fec3f3c44c57d35d7",
+      "gitSha": "8d6d9a2a0729a2aa9d04975aa531113dd3b27de2"
+    },
+    {
+      "path": "krkrz.data",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/krkrz.data",
+      "bytes": 18344419,
+      "sha256": "180544a2b30d251165e6db641717b53f1a5e4e2a6c431b786c0e65ac960bb6f5",
+      "gitSha": "af66a9db32e1f8d321d290680ba116bfc34e851f"
+    },
+    {
+      "path": "krkrz.js",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/krkrz.js",
+      "bytes": 299235,
+      "sha256": "8a0eb25d35babccb4c29a6cf2c95b14c104358898ad8186d8aeebdf205811db6",
+      "gitSha": "05376304fbaf66a1f86591e670b96a35486fd933"
+    },
+    {
+      "path": "krkrz.wasm",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/krkrz.wasm",
+      "bytes": 21178815,
+      "sha256": "c97b2442db01dd44a7b4d21f59f596236db1afbb516f7627088c5be4dbef0c2a",
+      "gitSha": "09745a58490f9ab0f3261cbe5eb24bca80c324e3"
+    },
+    {
+      "path": "resource.list",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource.list",
+      "bytes": 305,
+      "sha256": "86f8b07342805b4452b40badf24ceec3f1c69ad67761143de8c475a504fdd677",
+      "gitSha": "075704a88586633052b3ca94c041431bec37d809"
+    },
+    {
+      "path": "resource/SysInitScript.tjs",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/SysInitScript.tjs",
+      "bytes": 24248,
+      "sha256": "7e7fd84cffc81fac3d8207e2e3d06062fdde2d3a68db5ebca06dc6fb68674e51",
+      "gitSha": "33d81ab928f3adbe60dcc38d342eabb34c0602f5"
+    },
+    {
+      "path": "resource/config.cf",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/config.cf",
+      "bytes": 672,
+      "sha256": "9d3acf059456cdc5fd22117f4b5e75f93d75975109f7c717d68f2b16fcb820a3",
+      "gitSha": "54403482a44dcb5dff13241bf0abb6d84fa4db0a"
+    },
+    {
+      "path": "resource/elements_basic.ttf",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/elements_basic.ttf",
+      "bytes": 24576,
+      "sha256": "9e0a2afa892f15111cc224c25135c5988869bcf586e12c24cec9d33455f09ab5",
+      "gitSha": "7421f56da6d0391f94f60fa2f690eebb4372059a"
+    },
+    {
+      "path": "resource/gamecontrollerdb.txt",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/gamecontrollerdb.txt",
+      "bytes": 398459,
+      "sha256": "a91da10a21e0db9ebcda033cb41ca774111315e019f412bb931e8c6c279db596",
+      "gitSha": "a226d36a8d3795674c316de1050c61e6a0a45de9"
+    },
+    {
+      "path": "resource/messages-chs.json",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/messages-chs.json",
+      "bytes": 25014,
+      "sha256": "7edbde938419ef716e8377edd8bc81021594d6f82ef06f12c6489d51db64774f",
+      "gitSha": "c88ec8fa6d0f0ff5e726464ab459215ced00c532"
+    },
+    {
+      "path": "resource/messages-cht.json",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/messages-cht.json",
+      "bytes": 25353,
+      "sha256": "b1ce3712abe68089c43a8edff43118203beec0014d1b9a87f8e6c90fb5e8cde8",
+      "gitSha": "8151a22f8da2adc1bdc00c9ee8a5be652bcaa2fe"
+    },
+    {
+      "path": "resource/messages-en.json",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/messages-en.json",
+      "bytes": 25328,
+      "sha256": "e78fd17dbdba37a980fda2f6066dcb6d9e4d3f2d5975f68fe305441857d9b34f",
+      "gitSha": "e2f013ad31d2ade69abd5741e3d4a7ad792d3437"
+    },
+    {
+      "path": "resource/messages.json",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/messages.json",
+      "bytes": 39112,
+      "sha256": "a64aba8693f97b43f175ce7ee12d3ffdafe902b04c875740ed7cfb2dee333a43",
+      "gitSha": "f25ea127d64bd84f6c1468e961010180b691d64c"
+    },
+    {
+      "path": "resource/notoemoji-regular.ttf",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/notoemoji-regular.ttf",
+      "bytes": 1982596,
+      "sha256": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+      "gitSha": "c2c26ab612a88a8610ff9cfbb89299bf2aea6c7a"
+    },
+    {
+      "path": "resource/notosansjp-regular.otf",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/notosansjp-regular.otf",
+      "bytes": 4548148,
+      "sha256": "47c29251c03bd7731461efd9aff279d04058025c24fc08ed49552aeec20adc6d",
+      "gitSha": "57912987999347f77097793a55f9f20387ffe62f"
+    },
+    {
+      "path": "resource/optiondesc-chs.json",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/optiondesc-chs.json",
+      "bytes": 43417,
+      "sha256": "e4e5130969d27999577d7b8f7e10798424b35bdbb13af0bb2e5462e91c8711d6",
+      "gitSha": "62c9ef5c2a67eb62bf0304c521cfd3b10fd5ef32"
+    },
+    {
+      "path": "resource/optiondesc-cht.json",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/optiondesc-cht.json",
+      "bytes": 43480,
+      "sha256": "addcc428b0b0f361e2ea90599245e9ad2cf40a9965ee65fd91fa4ba6062925b1",
+      "gitSha": "bd295272a62489868adbf19224482ffc395d862d"
+    },
+    {
+      "path": "resource/optiondesc-en.json",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/optiondesc-en.json",
+      "bytes": 43774,
+      "sha256": "d7e7dc890ff1bc749ec70509594b2c1c30dcf914b90f7a480790c511230b6374",
+      "gitSha": "432fd689bf2ceb29a729f4ac2c647030dda0d48c"
+    },
+    {
+      "path": "resource/optiondesc.json",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/optiondesc.json",
+      "bytes": 52738,
+      "sha256": "22b44e7e0f82a09190c608fd90b7510ba77956bc2a95540002f4d8d865e47638",
+      "gitSha": "31198d2bf10eaca422fc0a9f07421c7d768a5c84"
+    },
+    {
+      "path": "resource/roboto-regular.ttf",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/_assets/demo/resource/roboto-regular.ttf",
+      "bytes": 168260,
+      "sha256": "319cff6e7a31f0f2a41c475dca42890aa5d19fe16017e2290f8c1d4e14f76481",
+      "gitSha": "3d6861b42396c609e26f38f129383c558e332281"
+    },
+    {
+      "path": "licenses/krkrz-dev-LICENSE.md",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/LICENSE.md",
+      "bytes": 1086,
+      "sha256": "1d20d826172a9f3e78d93e6ed5b298486b4a7ab5025727ba6151180b628c364c",
+      "gitSha": "9c06e2762fd3a325773f784c4043a53293efa435"
+    },
+    {
+      "path": "licenses/Licenses.en.md",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/guide/Licenses.en.md",
+      "bytes": 8048,
+      "sha256": "17409f6cd085e4095883454b9bcb62435d247444c104f9c0f6a7e71bcef74d80",
+      "gitSha": "1c749f9a54a61383261886cd28d8f6ae051c3871"
+    },
+    {
+      "path": "licenses/BundledLicenses.en.md",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/doc/guide/BundledLicenses.en.md",
+      "bytes": 5992,
+      "sha256": "6affd09ab4723f0c59645071920f4a0d980358a9672d56862b37aadb5d93cba0",
+      "gitSha": "24c85b91379d8b7ea5e1adcce2d84c021ec1d8c6"
+    },
+    {
+      "path": "licenses/DEMO-ASSETS.md",
+      "url": "https://raw.githubusercontent.com/wamsoft/krkrz_dev/21d20e9745e13c9ffe68ae2eb012548afe73aaa8/data/DEMO-ASSETS.md",
+      "bytes": 7246,
+      "sha256": "6073cdaeba8be816b81735e33cd75c41968b3cb003cf6f4df295e54364ad1a32",
+      "gitSha": "144beee0591417e35012bcc27601ba04204f61c1"
+    }
+  ]
+}

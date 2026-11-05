@@ -1,0 +1,221 @@
+// Experimental, independently implemented Particle/Emitter compatibility. MIT.
+// Settings are compiled from .pee JSON by the exporter, then fetched on demand.
+if(typeof global.Particle != "undefined") return;
+function krkrtoolsParticleNumber(config, key, fallback = 0) {
+  return config[key] === void ? fallback : +config[key];
+}
+function krkrtoolsParticleClamp(n) { return Math.max(0, Math.min(1, n)); }
+class KrkrtoolsParticleEmitter {
+  var config, particles, owner, texture = null, tinted = null, tint = -1;
+  var offsetX = 0, offsetY = 0, interpolate = stLinear;
+  var elapsed = 0, credit = 0, duration = -1, emitting = false;
+  function KrkrtoolsParticleEmitter(settings, parent) { config = settings; owner = parent; particles = []; }
+  function n(key, fallback = 0) { return krkrtoolsParticleNumber(config, key, fallback); }
+  function vary(key, variance, fallback = 0) { return n(key, fallback) + (owner.random() * 2 - 1) * n(variance); }
+  property textureFileName { getter() { return config.texture.filename; } }
+  property textureLayer {
+    setter(value) {
+      if(texture !== null) invalidate texture;
+      if(tinted !== null) invalidate tinted;
+      texture = new Layer(value.window, value.window.primaryLayer); texture.visible = false; texture.assignImages(value);
+      tinted = null; tint = -1;
+    }
+  }
+  function setOffset(x, y) { offsetX = x; offsetY = y; }
+  function start(seconds) {
+    particles.clear(); elapsed = 0; credit = 0; emitting = true;
+    duration = seconds === void || seconds <= 0 ? n("duration", -1) : seconds;
+    if(duration <= 0) duration = -1;
+  }
+  property active { getter() { return emitting || particles.count > 0; } }
+  function spawn() {
+    var life = Math.max(0.001, vary("lifespan", "lifespan_variance", 1));
+    var angle = vary("emitter_angle", "emitter_angle_variance") * Math.PI / 180;
+    var speed = vary("speed", "speed_variance");
+    var p = %["age"=>0.0, "life"=>life, "x"=>(owner.random()*2-1)*n("x_variance"), "y"=>(owner.random()*2-1)*n("y_variance"),
+      "vx"=>Math.cos(angle)*speed, "vy"=>Math.sin(angle)*speed, "angle"=>angle,
+      "radius"=>Math.max(0,vary("max_radius","max_radius_variance")), "radial"=>vary("rad_acc","rad_acc_var"),
+      "tangent"=>vary("tan_acc","tan_acc_var"), "angular"=>vary("deg_per_sec","deg_per_sec_var")*Math.PI/180,
+      "size0"=>Math.max(0,vary("start_size","start_size_variance")), "size1"=>Math.max(0,vary("finish_size","finish_size_variance")),
+      "rotation"=>vary("start_rot","start_rot_variance")*Math.PI/180, "spin"=>vary("rot_per_sec","rot_per_sec_variance")*Math.PI/180,
+      "hx"=>vary("hor_amplitude","hor_amplitude_var"), "hy"=>vary("ver_amplitude","ver_amplitude_var"),
+      "cx"=>vary("hor_cycle","hor_cycle_var"), "cy"=>vary("ver_cycle","ver_cycle_var"), "start"=>[], "finish"=>[]];
+    var channels = ["r","g","b","a"];
+    for(var c = 0; c < 4; c++) {
+      var key = "start_color_"+channels[c];
+      p.start[c] = krkrtoolsParticleClamp(vary(key,key+"_var"));
+      key = "finish_color_"+channels[c];
+      p.finish[c] = config.color_constant ? p.start[c] : krkrtoolsParticleClamp(vary(key,key+"_var"));
+    }
+    particles.add(p);
+  }
+  function step(dt) {
+    var before = elapsed; elapsed += dt;
+    var delay = Math.max(0,n("delay"));
+    var emissionTime = Math.max(0,Math.min(elapsed, duration < 0 ? elapsed : delay+duration)-Math.max(before,delay));
+    if(emitting && emissionTime > 0) {
+      credit += emissionTime * n("max_particles") / n("lifespan",1);
+      while(credit >= 1 && particles.count < n("max_particles")) { spawn(); credit -= 1; }
+      if(particles.count >= n("max_particles")) credit = 0;
+    }
+    if(duration >= 0 && elapsed >= delay+duration) emitting = false;
+    for(var i = particles.count-1; i >= 0; i--) {
+      var p = particles[i]; p.age += dt;
+      if(p.age >= p.life) { particles.erase(i); continue; }
+      if(config.type == "radial") { p.angle += p.angular*dt; }
+      else {
+        var distance = Math.sqrt(p.x*p.x+p.y*p.y), rx = distance > 0 ? p.x/distance : 0, ry = distance > 0 ? p.y/distance : 0;
+        p.vx += (n("x_gravity")+rx*p.radial-ry*p.tangent)*dt;
+        p.vy += (n("y_gravity")+ry*p.radial+rx*p.tangent)*dt;
+        p.x += p.vx*dt; p.y += p.vy*dt;
+      }
+    }
+  }
+  function draw(target, mask = null) {
+    if(texture === null || !isvalid texture) return;
+    if(config.sort_type == "duration_asc") particles.sort(function(a,b) { return a.life-a.age < b.life-b.age; });
+    else if(config.sort_type == "duration_desc") particles.sort(function(a,b) { return a.life-a.age > b.life-b.age; });
+    var tex = config.texture, nx = tex.is_animation ? Math.max(1,+tex.split_x) : 1, ny = tex.is_animation ? Math.max(1,+tex.split_y) : 1;
+    var sw = int(texture.imageWidth/nx), sh = int(texture.imageHeight/ny);
+    if(sw <= 0 || sh <= 0) return;
+    for(var i = 0; i < particles.count; i++) {
+      var p = particles[i], progress = p.age/p.life, x = p.x, y = p.y;
+      if(config.type == "radial") {
+        var radius = p.radius+(n("min_radius")-p.radius)*progress;
+        x = -Math.cos(p.angle)*radius; y = -Math.sin(p.angle)*radius;
+      }
+      if(p.cx != 0) x += Math.sin(p.age*Math.PI*2/p.cx)*p.hx;
+      if(p.cy != 0) y += Math.sin(p.age*Math.PI*2/p.cy)*p.hy;
+      x += target.imageWidth/2+offsetX; y += target.imageHeight/2+offsetY;
+      var size = p.size0+(p.size1-p.size0)*progress;
+      var rotation = p.rotation+p.spin*p.age;
+      if(config.texture_direction_before) rotation += Math.atan2(p.vy,p.vx);
+      var a = Math.cos(rotation)*size/Math.max(sw,sh), b = Math.sin(rotation)*size/Math.max(sw,sh);
+      var source = texture, alpha = 255;
+      if(config.enable_color) {
+        var r = int(255*krkrtoolsParticleClamp(p.start[0]+(p.finish[0]-p.start[0])*progress));
+        var g = int(255*krkrtoolsParticleClamp(p.start[1]+(p.finish[1]-p.start[1])*progress));
+        var blue = int(255*krkrtoolsParticleClamp(p.start[2]+(p.finish[2]-p.start[2])*progress));
+        alpha = int(255*krkrtoolsParticleClamp(p.start[3]+(p.finish[3]-p.start[3])*progress));
+        var color = (r<<16)|(g<<8)|blue;
+        if(color != 0xffffff) {
+          if(tinted === null) { tinted = new Layer(texture.window, texture); tinted.visible = false; }
+          if(tint != color) { tinted.assignImages(texture); tinted.adjustGamma(1,0,r,1,0,g,1,0,blue); tint = color; }
+          source = tinted;
+        }
+      }
+      var frame = 0;
+      if(tex.is_animation && nx*ny > 1) {
+        var frames = tex.frames, cycle = 0;
+        for(var f = 0; f < nx*ny; f++) cycle += frames === void || !frames.count ? 50 : frames[f%frames.count];
+        var time = (p.age*1000)%cycle;
+        for(var f = 0; f < nx*ny-1; f++) {
+          time -= frames === void || !frames.count ? 50 : frames[f%frames.count];
+          if(time < 0) break;
+          frame++;
+        }
+      }
+      if(alpha > 0 && size > 0) {
+        var tx = x-a*sw/2+b*sh/2, ty = y-b*sw/2-a*sh/2;
+        target.operateAffine(source,(frame%nx)*sw,int(frame/nx)*sh,sw,sh,true,a,b,-b,a,
+          tx,ty,config.blending_mode == "add" ? omPsAdditive : omAlpha,alpha,interpolate);
+        // Photoshop additive blending preserves destination alpha. Accumulate
+        // coverage separately, then convert the premultiplied result below.
+        if(mask !== null) mask.operateAffine(source,(frame%nx)*sw,int(frame/nx)*sh,sw,sh,true,a,b,-b,a,tx,ty,omAlpha,alpha,interpolate);
+      }
+    }
+  }
+  function finalize() {
+    if(texture !== null && isvalid texture) invalidate texture;
+    if(tinted !== null && isvalid tinted) invalidate tinted;
+    texture = tinted = null; particles.clear(); owner = null;
+  }
+}
+class KrkrtoolsParticle {
+  var emitters = [], target = null, background = null, render = null, mask = null, opaque = false, randomSeed = 1, lastTick = 0;
+  function KrkrtoolsParticle() { emitters = []; }
+  function random() { randomSeed = (randomSeed*1664525+1013904223) & 0x7fffffff; return randomSeed/2147483648.0; }
+  property seed { setter(value) { randomSeed = int(value) & 0x7fffffff; if(randomSeed == 0) randomSeed = 1; } }
+  function clear() {
+    for(var i = 0; i < emitters.count; i++) invalidate emitters[i];
+    emitters.clear();
+  }
+  function load(filename) {
+    stop(true); clear();
+    var dataPath = filename+".krkrtools.tjs";
+    if(!Storages.isExistentStorage(dataPath)) throw new Exception("krkrtools: re-export this game to prepare particle settings: "+filename);
+    var settings = Scripts.evalStorage(dataPath);
+    for(var i = 0; i < settings.count; i++) emitters.add(new KrkrtoolsParticleEmitter(settings[i],this));
+    return true;
+  }
+  function getEmitter(index) { return emitters[index]; }
+  property count { getter() { return emitters.count; } }
+  property active { getter() { for(var i = 0; i < emitters.count; i++) if(emitters[i].active) return true; return false; } }
+  property targetLayer {
+    setter(value) {
+      if(background !== null && isvalid background) invalidate background;
+      if(render !== null && isvalid render) invalidate render;
+      if(mask !== null && isvalid mask) invalidate mask;
+      render = mask = null; background = null; target = value;
+      if(opaque && target !== null) { background = new Layer(target.window,target); background.visible = false; background.assignImages(target); }
+    }
+  }
+  property interpolate { setter(value) { for(var i = 0; i < emitters.count; i++) emitters[i].interpolate = value; } }
+  function setOffset(x,y) { for(var i = 0; i < emitters.count; i++) emitters[i].setOffset(x,y); }
+  function start(duration) { lastTick = System.getTickCount(); for(var i = 0; i < emitters.count; i++) emitters[i].start(duration); }
+  function draw() {
+    if(target === null || !isvalid target) return;
+    if(opaque && background !== null && isvalid background) {
+      target.assignImages(background);
+      for(var i = 0; i < emitters.count; i++) emitters[i].draw(target);
+      return;
+    }
+    var additive = false;
+    for(var i = 0; i < emitters.count; i++) if(emitters[i].config.blending_mode == "add") additive = true;
+    if(!additive) {
+      target.fillRect(0,0,target.imageWidth,target.imageHeight,0);
+      for(var i = 0; i < emitters.count; i++) emitters[i].draw(target);
+      return;
+    }
+    if(render === null || !isvalid render) {
+      render = new Layer(target.window,target); render.visible = false; render.type = ltAddAlpha;
+      mask = new Layer(target.window,target); mask.visible = false; mask.type = ltAlpha;
+    }
+    render.setSize(target.imageWidth,target.imageHeight); mask.setSize(target.imageWidth,target.imageHeight);
+    render.fillRect(0,0,target.imageWidth,target.imageHeight,0); mask.fillRect(0,0,target.imageWidth,target.imageHeight,0);
+    for(var i = 0; i < emitters.count; i++) emitters[i].draw(render,mask);
+    render.face = dfMask; render.copyRect(0,0,mask,0,0,target.imageWidth,target.imageHeight); render.face = dfAddAlpha;
+    var face = target.face, hold = target.holdAlpha;
+    try {
+      target.face = target.type == ltAddAlpha ? dfAddAlpha : dfAlpha; target.holdAlpha = false;
+      if(target.type != ltAddAlpha) { render.face = dfAlpha; render.convertType(dfAddAlpha); }
+      target.copyRect(0,0,render,0,0,target.imageWidth,target.imageHeight);
+      render.face = dfAddAlpha;
+    } catch(error) { target.face = face; target.holdAlpha = hold; throw error; }
+    target.face = face; target.holdAlpha = hold;
+  }
+  function advanceTime(seconds) {
+    var now = System.getTickCount();
+    if(seconds === void) seconds = (now-lastTick)/1000.0;
+    lastTick = now;
+    if(seconds < 0 || seconds > 120) throw new Exception("krkrtools: particle advanceTime requires 0..120 seconds");
+    while(seconds > 0) {
+      var dt = Math.min(seconds,1.0/60); seconds -= dt;
+      for(var i = 0; i < emitters.count; i++) emitters[i].step(dt);
+    }
+    draw(); return active;
+  }
+  function stop(clear = false) {
+    for(var i = 0; i < emitters.count; i++) { emitters[i].emitting = false; if(clear) emitters[i].particles.clear(); }
+    if(clear) draw();
+  }
+  function finalize() {
+    clear();
+    if(background !== null && isvalid background) invalidate background;
+    if(render !== null && isvalid render) invalidate render;
+    if(mask !== null && isvalid mask) invalidate mask;
+    target = background = render = mask = null;
+  }
+}
+global.Particle = KrkrtoolsParticle;
+Debug.notice("krkrtools: using experimental .pee particle rendering; native plugin pixel parity and heavy-effect performance are not established");

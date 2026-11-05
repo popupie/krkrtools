@@ -1,0 +1,256 @@
+// krkrtools KAG3 browser compatibility. MIT licensed.
+// Keep the old menu object model; the browser UI invokes these same commands.
+if(typeof global.krkrtoolsKagLoaded != "undefined") return;
+global.krkrtoolsKagLoaded = true;
+// KiriKiri2's display offset drives KAG's quake timer. Use the runtime's native
+// viewport so rendering, clipping and pointer transforms share the same offset.
+if(typeof Window.setLayerPos == "undefined") Window.setLayerPos = function(left,top) {
+  if(typeof this.viewportOffsetX != "undefined" && typeof this.viewportOffsetY != "undefined") {
+    this.viewportOffsetX=int(left);this.viewportOffsetY=int(top);
+  } else if(typeof this.layerLeft != "undefined" && typeof this.layerTop != "undefined") {
+    this.layerLeft=int(left);this.layerTop=int(top);
+  } else throw new Exception("krkrtools: setLayerPos requires native viewport offsets or legacy layer offsets in this runtime");
+};
+// Some web builds enumerate their fonts but return zero-width glyphs through
+// the legacy FreeType path. Use glyphware only when that path is broken.
+var krkrtoolsFontProbe = new Font();
+krkrtoolsFontProbe.height = 24;
+krkrtoolsFontProbe.face = Font.defaultFaceName;
+if(krkrtoolsFontProbe.getTextWidth("Hello") <= 0) {
+  var krkrtoolsPreviousRasterizer = Font.rasterizer;
+  Font.rasterizer = 2;
+  krkrtoolsFontProbe = new Font();
+  krkrtoolsFontProbe.height = 24;
+  krkrtoolsFontProbe.face = Font.defaultFaceName;
+  if(krkrtoolsFontProbe.getTextWidth("Hello") <= 0) Font.rasterizer = krkrtoolsPreviousRasterizer;
+}
+invalidate krkrtoolsFontProbe;
+if(typeof Debug.console == "undefined") Debug.console = %["visible" => false];
+if(typeof Debug.controller == "undefined") Debug.controller = %["visible" => false];
+// An absent registry value is represented by void in the native API. Browsers
+// have no Windows registry; allow the game's ordinary missing-value branch.
+if(typeof System.readRegValue == "undefined") System.readRegValue = function(name) { return void; };
+  class KrkrtoolsMenuItem {
+    var window, parent, children, caption = "", visible = true, enabled = true;
+    var group = 0, radio = false, shortcut = "", _checked = false;
+    function MenuItem(owner, text = "") {
+      window = owner; caption = text; children = []; parent = null;
+    }
+    function KrkrtoolsMenuItem(owner, text = "") { MenuItem(owner, text); }
+    function add(item) { insert(item, children.count); }
+    function insert(item, position) {
+      if(item.parent !== null) item.parent.remove(item);
+      children.insert(position, item); item.parent = this;
+    }
+    function remove(item) { children.remove(item); item.parent = null; }
+    property root { getter() { return parent === null ? this : parent.root; } }
+    property index {
+      getter() {
+        if(parent === null) return 0;
+        for(var i = 0; i < parent.children.count; i++) if(parent.children[i] === this) return i;
+        return -1;
+      }
+      setter(position) { if(parent !== null) parent.insert(this, position); }
+    }
+    property checked {
+      getter() { return _checked; }
+      setter(value) {
+        if(value && radio && parent !== null)
+          for(var i = 0; i < parent.children.count; i++) {
+            var item = parent.children[i];
+            if(item !== this && item.radio && item.group == group) item.checked = false;
+          }
+        _checked = value;
+      }
+    }
+    function onClick() {}
+    function finalize() {
+      for(var i = children.count - 1; i >= 0; i--) invalidate children[i];
+      children.clear(); window = null; parent = null;
+    }
+  }
+global.krkrtoolsNeedsMenus = typeof global.MenuItem == "undefined";
+if(global.krkrtoolsNeedsMenus) global.MenuItem = KrkrtoolsMenuItem;
+Scripts.execStorage("_krkrtools/plugins.tjs");
+  global.krkrtoolsExecStorage = Scripts.execStorage;
+  Scripts.execStorage = function(name) {
+    // KTL's networking backend is a Windows DLL. Report its unavailable
+    // connection honestly so games with an offline branch can use that branch.
+    if(/^ktl\/network\.tjs$/i.test(name)) {
+      if(typeof global.Network == "undefined") {
+        global.Network = %["isInternetConnected" => false, "stop" => function() {}];
+        global.krkrtoolsOfflineNetwork = true;
+        Debug.notice("krkrtools: KTL networking is offline in this browser export");
+      }
+      if(typeof global.krkrtoolsOfflineNetwork != "undefined") return;
+    }
+    var result = global.krkrtoolsExecStorage(...);
+    if(/(^|\/)yesnodialog\.tjs$/i.test(name) && typeof global.askYesNo != "undefined")
+      global.krkrtoolsExecStorage("_krkrtools/dialogs.tjs");
+    if(/(^|\/)config\.tjs$/i.test(name) && typeof global.KAGWindow_config != "undefined") {
+      global.krkrtoolsWindowConfig = global.KAGWindow_config;
+      global.KAGWindow_config = function() {
+        (global.krkrtoolsWindowConfig incontextof this)(...);
+        // Older Wasm builds ignore -datapath and Dictionary.saveStruct writes
+        // user:// as a local filename. Choose the mounted IDBFS path before
+        // KAG loads system variables or constructs its save menu.
+        this.saveDataLocation = global.krkrtoolsSaveStorage;
+      };
+    }
+    if(/messagelayer\.tjs$/i.test(name) && typeof global.MessageLayer != "undefined") {
+      global.krkrtoolsProcessCh = MessageLayer.processCh;
+      MessageLayer.processCh = function(ch) {
+        var result = (global.krkrtoolsProcessCh incontextof this)(...);
+        if(!result) this.krkrtoolsText = (typeof this.krkrtoolsText == "undefined" ? "" : this.krkrtoolsText) + ch;
+        return result;
+      };
+      global.krkrtoolsClearLayer = MessageLayer.clearLayer;
+      MessageLayer.clearLayer = function() {
+        this.krkrtoolsText = "";
+        return (global.krkrtoolsClearLayer incontextof this)(...);
+      };
+      global.krkrtoolsProcessReturn = MessageLayer.processReturn;
+      MessageLayer.processReturn = function() {
+        var result = (global.krkrtoolsProcessReturn incontextof this)(...);
+        if(!result) this.krkrtoolsText = (typeof this.krkrtoolsText == "undefined" ? "" : this.krkrtoolsText) + "\n";
+        return result;
+      };
+      global.krkrtoolsAssignMessage = MessageLayer.internalAssign;
+      MessageLayer.internalAssign = function(src) {
+        var result = (global.krkrtoolsAssignMessage incontextof this)(...);
+        this.krkrtoolsText = typeof src.krkrtoolsText == "undefined" ? "" : src.krkrtoolsText;
+        return result;
+      };
+      global.krkrtoolsStoreMessage = MessageLayer.store;
+      MessageLayer.store = function() {
+        var result = (global.krkrtoolsStoreMessage incontextof this)(...);
+        result.krkrtoolsText = typeof this.krkrtoolsText == "undefined" ? "" : this.krkrtoolsText;
+        return result;
+      };
+      global.krkrtoolsRestoreMessage = MessageLayer.restore;
+      MessageLayer.restore = function(data) {
+        var result = (global.krkrtoolsRestoreMessage incontextof this)(...);
+        this.krkrtoolsText = typeof data.krkrtoolsText == "undefined" ? "" : data.krkrtoolsText;
+        return result;
+      };
+    }
+    if(/menus\.tjs$/i.test(name) && typeof global.KAGWindow_createMenus != "undefined") {
+      global.krkrtoolsCreateMenus = global.KAGWindow_createMenus;
+      global.KAGWindow_createMenus = function() {
+        if(global.krkrtoolsNeedsMenus) this.menu = new global.MenuItem(this);
+        this.innerSunken = false; // Windows client-edge decoration has no browser equivalent.
+        this.showScrollBars = false; // The canvas is fitted by the HTML host.
+        (global.krkrtoolsCreateMenus incontextof this)();
+      };
+    }
+    return result;
+  };
+
+function krkrtoolsQuote(value) {
+  var text = string(value), result = '"';
+  for(var i = 0; i < text.length; i++) {
+    var ch = text.charAt(i), code = #ch;
+    if(ch == '"') result += '\\"';
+    else if(ch == "\\") result += "\\\\";
+    else if(code < 32) result += "\\u%04x".sprintf(code);
+    else result += ch;
+  }
+  return result + '"';
+}
+
+function krkrtoolsState(slot = 0) {
+  if(typeof global.kag == "undefined") return '{"ready":false}';
+  var text = "";
+  for(var i = 0; i < kag.fore.messages.count; i++) {
+    var layer = kag.fore.messages[i];
+    if(layer.visible && typeof layer.krkrtoolsText != "undefined" && layer.krkrtoolsText != "") {
+      if(text != "") text += "\n";
+      text += layer.krkrtoolsText;
+    }
+  }
+  var validSlot = slot >= 0 && slot < kag.numBookMarks;
+  var nativeMenus = krkrtoolsNativeSaveMenus();
+  return '{"ready":true,"customSaveMenu":' + (nativeMenus ? "false" : "true")
+    + ',"canSave":' + (nativeMenus && validSlot && kag.canStore() && !kag.readOnlyMode && !kag.bookMarkProtectedStates[slot] ? "true" : "false")
+    + ',"canLoad":' + (nativeMenus && validSlot && kag.canRestore() && Storages.isExistentStorage(kag.getBookMarkFileNameAtNum(slot)) ? "true" : "false")
+    + ',"text":' + krkrtoolsQuote(text) + ',"scene":' + krkrtoolsQuote(kag.conductor.curStorage) + '}';
+}
+
+function krkrtoolsNativeSaveMenus() {
+  // Games can replace the bookmark menus with their own save metadata and
+  // restoration hooks. Keep those games on their own save screens.
+  try { return kag.storeMenu.visible && kag.restoreMenu.visible
+    && kag.storeMenu.root === kag.menu && kag.restoreMenu.root === kag.menu; }
+  catch(e) { return false; }
+}
+
+function krkrtoolsMenuNode(item, path, depth) {
+  var rows = "";
+  for(var i = 0; i < item.children.count; i++) {
+    var child = item.children[i];
+    if(!child.visible || child.caption == "-") continue;
+    var key = path == "" ? string(i) : path + "." + i;
+    if(rows != "") rows += ",";
+    rows += '{"path":' + krkrtoolsQuote(key) + ',"caption":' + krkrtoolsQuote(child.caption)
+      + ',"enabled":' + (child.enabled ? "true" : "false") + ',"checked":' + (child.checked ? "true" : "false")
+      + ',"children":[' + krkrtoolsMenuNode(child, key, depth + 1) + ']}';
+  }
+  return rows;
+}
+
+function krkrtoolsMenus() { return '[' + krkrtoolsMenuNode(kag.menu, "", 0) + ']'; }
+
+function krkrtoolsMenuClick(path) {
+  if(!/^[0-9]+(\.[0-9]+)*$/.test(path)) throw new Exception("Invalid menu selection.");
+  var item = kag.menu;
+  var indices = path.split(/\./);
+  for(var i = 0; i < indices.count; i++) {
+    item = item.children[int(indices[i])];
+    if(!item.visible || !item.enabled) throw new Exception("This menu item is unavailable here.");
+  }
+  item.onClick();
+  return true;
+}
+
+function krkrtoolsSave(slot) {
+  if(!krkrtoolsNativeSaveMenus()) throw new Exception("Use the game's save screen.");
+  if(slot < 0 || slot >= kag.numBookMarks || !kag.canStore()) throw new Exception("Saving is unavailable here.");
+  if(!kag.storeBookMark(slot, false)) throw new Exception("The game could not write this save slot.");
+  return true;
+}
+
+function krkrtoolsLoad(slot) {
+  if(!krkrtoolsNativeSaveMenus()) throw new Exception("Use the game's load screen.");
+  if(slot < 0 || slot >= kag.numBookMarks || !kag.canRestore()) throw new Exception("Loading is unavailable here.");
+  if(!kag.restoreBookMark(slot, false)) throw new Exception("The selected save could not be loaded.");
+  return true;
+}
+
+// Run commands from the normal engine event loop. A bookmark restore can yield
+// through Asyncify; running it on the REPL's separate stack corrupts that stack.
+var krkrtoolsCommand = null;
+function krkrtoolsRunCommand() {
+  global.krkrtoolsCommandTimer.enabled = false;
+  var command = global.krkrtoolsCommand;
+  var ok = true, error = "";
+  try {
+    if(command.operation == "save") krkrtoolsSave(command.argument);
+    else if(command.operation == "load") krkrtoolsLoad(command.argument);
+    else if(command.operation == "menu") krkrtoolsMenuClick(command.argument);
+    else throw new Exception("Unknown game command.");
+  } catch(e) { ok = false; error = e.message; }
+  global.krkrtoolsCommand = null;
+  Debug.notice('@krkrtools-command:{"token":' + command.token + ',"ok":' + (ok ? "true" : "false")
+    + ',"error":' + krkrtoolsQuote(error) + '}');
+}
+var krkrtoolsCommandTimer = new Timer(krkrtoolsRunCommand, "");
+krkrtoolsCommandTimer.enabled = false;
+krkrtoolsCommandTimer.interval = 1;
+
+function krkrtoolsRequest(operation, argument, token) {
+  if(global.krkrtoolsCommand !== null) throw new Exception("A game command is already running.");
+  if(operation != "save" && operation != "load" && operation != "menu") throw new Exception("Unknown game command.");
+  global.krkrtoolsCommand = %["operation" => operation, "argument" => argument, "token" => token];
+  global.krkrtoolsCommandTimer.enabled = true;
+  return true;
+}

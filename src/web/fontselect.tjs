@@ -1,0 +1,31 @@
+// Cross-platform replacement for Krkr2Compat's Windows font selection dialog.
+// Uses the runtime's modal overlay and returns the chosen face synchronously.
+&System.doFontSelect = function(layer, flags = 0, caption = "Choose a font", prompt = "", sample = "") {
+  if(typeof global.ElementsDialog == "undefined") throw new Exception("krkrtools: this runtime has no cross-platform font dialog");
+  var fonts = layer.font.getList(flags), page = 0, perPage = 8;
+  if(fonts.count == 0) throw new Exception("krkrtools: the runtime returned no fonts for this selection");
+  while(true) {
+    var children = [%["type"=>"label","text"=>caption,"size_scale"=>1.2]];
+    if(prompt != "") children.add(%["type"=>"label","text"=>prompt]);
+    for(var i = page*perPage; i < Math.min(fonts.count,(page+1)*perPage); i++)
+      children.add(%["type"=>"vsize","height"=>32,"child"=>%["type"=>"button","id"=>"font_"+i,"text"=>fonts[i],"close_on_click"=>true]]);
+    var buttons = [];
+    if(page > 0) buttons.add(%["type"=>"button","id"=>"previous","text"=>"Previous","close_on_click"=>true]);
+    if((page+1)*perPage < fonts.count) buttons.add(%["type"=>"button","id"=>"next","text"=>"Next","close_on_click"=>true]);
+    buttons.add(%["type"=>"button","id"=>"cancel","text"=>"Cancel","close_on_click"=>true]);
+    children.add(%["type"=>"htile","gap"=>8,"children"=>buttons]);
+    var dialog = new global.ElementsDialog();
+    var result;
+    try { result = dialog.showModalDict(%["size"=>[520,480],"background"=>[28,31,38,245],"content"=>%["type"=>"vtile","gap"=>6,"children"=>children]]); }
+    catch(error) { invalidate dialog; throw error; }
+    invalidate dialog;
+    if(result.action == "next") { page++; continue; }
+    if(result.action == "previous") { page--; continue; }
+    if(result.action.indexOf("font_") == 0) {
+      var index = int(result.action.substring(5));
+      if(index >= 0 && index < fonts.count) return fonts[index];
+    }
+    return void;
+  }
+} incontextof global;
+Debug.notice("krkrtools: using the runtime's cross-platform font picker instead of the Windows font dialog");
