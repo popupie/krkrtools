@@ -1,4 +1,4 @@
-# krkrtools
+# krkrtools (WIP)
 
 krkrtools is a command line tool for KiriKiri games. It can check game files, unpack supported archives, pack folders into archives, and create a website with KiriKiri Z Web.
 
